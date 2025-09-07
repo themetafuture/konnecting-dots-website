@@ -34,7 +34,8 @@ model User {
   blogPosts           BlogPost[]
   events              Event[]
   approvedStudents    User[]        @relation("StudentApproval")
-  studentApprovals    StudentApproval[] @relation("StudentApprovalReviewer")
+  studentApprovalsAsStudent StudentApproval[] @relation("StudentApprovalStudent")
+  studentApprovalsAsReviewer StudentApproval[] @relation("StudentApprovalReviewer")
 
   @@map("users")
 }
@@ -245,8 +246,8 @@ model StudentApproval {
   updatedAt   DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
 
   // Relations
-  student   User  @relation(fields: [studentId], references: [id])
-  reviewer  User? @relation(fields: [reviewedBy], references: [id])
+  student   User  @relation("StudentApprovalStudent", fields: [studentId], references: [id])
+  reviewer  User? @relation("StudentApprovalReviewer", fields: [reviewedBy], references: [id])
 
   @@map("student_approvals")
 }

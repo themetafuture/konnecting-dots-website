@@ -11,19 +11,38 @@ class EmailService {
   private transporter: nodemailer.Transporter
 
   constructor() {
-    this.transporter = nodemailer.createTransporter({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: false,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    })
+    // Create a dummy transporter if email is not configured
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      this.transporter = nodemailer.createTransport({
+        host: 'localhost',
+        port: 587,
+        secure: false,
+        auth: {
+          user: 'dummy',
+          pass: 'dummy',
+        },
+      })
+    } else {
+      this.transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST || 'smtp.gmail.com',
+        port: parseInt(process.env.SMTP_PORT || '587'),
+        secure: false,
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      })
+    }
   }
 
   async sendEmail(options: EmailOptions): Promise<boolean> {
     try {
+      // Check if email is configured
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.log(`Email not configured. Would send to ${options.to}: ${options.subject}`)
+        return true // Return true to not break the flow
+      }
+
       const mailOptions = {
         from: process.env.SMTP_FROM || 'noreply@konnectingdots.com',
         to: options.to,

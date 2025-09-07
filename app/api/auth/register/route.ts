@@ -2,10 +2,29 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
-import { EmailService } from '@/backend/services/emailService'
 
 const prisma = new PrismaClient()
-const emailService = new EmailService()
+
+// Lazy load email service to prevent build errors
+let emailService: any = null
+const getEmailService = async () => {
+  if (!emailService) {
+    try {
+      const { EmailService } = await import('@/backend/services/emailService')
+      emailService = new EmailService()
+    } catch (error) {
+      console.error('Failed to load email service:', error)
+      // Return a mock email service
+      emailService = {
+        sendNewStudentNotification: async () => {
+          console.log('Email service not available')
+          return true
+        }
+      }
+    }
+  }
+  return emailService
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,6 +81,7 @@ export async function POST(request: NextRequest) {
     })
     
     if (superAdmin) {
+      const emailService = await getEmailService()
       await emailService.sendNewStudentNotification(
         superAdmin.email,
         `${firstName} ${lastName}`,

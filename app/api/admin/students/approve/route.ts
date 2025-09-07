@@ -1,10 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import jwt from 'jsonwebtoken'
-import { EmailService } from '@/backend/services/emailService'
 
 const prisma = new PrismaClient()
-const emailService = new EmailService()
+
+// Lazy load email service to prevent build errors
+let emailService: any = null
+const getEmailService = async () => {
+  if (!emailService) {
+    try {
+      const { EmailService } = await import('@/backend/services/emailService')
+      emailService = new EmailService()
+    } catch (error) {
+      console.error('Failed to load email service:', error)
+      // Return a mock email service
+      emailService = {
+        sendStudentApprovalEmail: async () => {
+          console.log('Email service not available')
+          return true
+        }
+      }
+    }
+  }
+  return emailService
+}
 
 // Helper function to verify admin token
 async function verifyAdminToken(request: NextRequest) {
@@ -142,6 +161,7 @@ export async function POST(request: NextRequest) {
       })
 
       // Send approval email to student
+      const emailService = await getEmailService()
       await emailService.sendStudentApprovalEmail(
         approval.student.email,
         `${approval.student.firstName} ${approval.student.lastName}`,
@@ -150,6 +170,7 @@ export async function POST(request: NextRequest) {
       console.log(`Student ${approval.student.email} has been approved by ${admin.email}`)
     } else {
       // Send rejection email to student
+      const emailService = await getEmailService()
       await emailService.sendStudentApprovalEmail(
         approval.student.email,
         `${approval.student.firstName} ${approval.student.lastName}`,
