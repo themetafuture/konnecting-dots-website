@@ -1,28 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { AuthService } from '@/backend/services/authService'
-
-const authService = new AuthService()
+import { createClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const result = await authService.login(body)
+    const { email, password } = await request.json()
+    
+    if (!email || !password) {
+      return NextResponse.json({
+        success: false,
+        message: 'Email and password are required'
+      }, { status: 400 })
+    }
 
-    // Set HTTP-only cookie for token
-    const response = NextResponse.json({
+    const supabase = createClient()
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (error) {
+      return NextResponse.json({
+        success: false,
+        message: error.message
+      }, { status: 401 })
+    }
+
+    // Get user profile
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', data.user.id)
+      .single()
+
+    return NextResponse.json({
       success: true,
       message: 'Login successful',
-      data: result
+      data: {
+        user: data.user,
+        profile: profile
+      }
     })
-
-    response.cookies.set('auth-token', result.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    })
-
-    return response
 
   } catch (error: any) {
     console.error('Login error:', error)
@@ -30,7 +47,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: false,
       message: error.message || 'Login failed'
-    }, { status: error.status || 401 })
+    }, { status: 500 })
   }
 }
 

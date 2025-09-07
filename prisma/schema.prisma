@@ -1,0 +1,228 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Users table (matches your Supabase users table)
+model User {
+  id            String   @id @default(uuid()) @db.Uuid
+  email         String   @unique
+  password      String?  // Optional since Supabase handles auth
+  firstName     String   @map("first_name")
+  lastName      String   @map("last_name")
+  phone         String?
+  role          String   @default("student") @db.Text
+  avatar        String?
+  isActive      Boolean  @default(true) @map("is_active")
+  emailVerified Boolean  @default(false) @map("email_verified")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  coursesAsInstructor Course[]      @relation("CourseInstructor")
+  enrollments         Enrollment[]
+  adminActions        AdminAction[]
+  payments            Payment[]
+  testimonials        Testimonial[]
+  blogPosts           BlogPost[]
+  events              Event[]
+
+  @@map("users")
+}
+
+
+// Courses table
+model Course {
+  id           String  @id @default(uuid()) @db.Uuid
+  title        String
+  description  String?
+  content      String?
+  durationHours Int    @default(0) @map("duration_hours")
+  price        Decimal @default(0) @db.Decimal(10, 2)
+  status       String  @default("draft") @db.Text
+  instructorId String? @map("instructor_id") @db.Uuid
+
+  // Relations
+  instructor   User?           @relation("CourseInstructor", fields: [instructorId], references: [id])
+  modules      CourseModule[]
+  enrollments  Enrollment[]
+  events       Event[]
+  payments     Payment[]
+  testimonials Testimonial[]
+
+  @@map("courses")
+}
+
+// Course modules table
+model CourseModule {
+  id          String  @id @default(uuid()) @db.Uuid
+  courseId    String  @map("course_id") @db.Uuid
+  title       String
+  description String?
+  content     String?
+  orderIndex  Int     @default(0) @map("order_index")
+  isRequired  Boolean @default(true) @map("is_required")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relations
+  course   Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress Progress[]
+
+  @@map("course_modules")
+}
+
+// Enrollments table
+model Enrollment {
+  id         String   @id @default(uuid()) @db.Uuid
+  studentId  String   @map("student_id") @db.Uuid
+  courseId   String   @map("course_id") @db.Uuid
+  status     String   @default("pending") @db.Text
+  enrolledAt DateTime @default(now()) @map("enrolled_at") @db.Timestamptz(6)
+  approvedAt DateTime? @map("approved_at") @db.Timestamptz(6)
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(6)
+
+  // Relations
+  student  User   @relation(fields: [studentId], references: [id])
+  course   Course @relation(fields: [courseId], references: [id])
+  progress Progress[]
+
+  @@unique([studentId, courseId])
+  @@map("enrollments")
+}
+
+// Progress table
+model Progress {
+  id                 String   @id @default(uuid()) @db.Uuid
+  enrollmentId       String   @map("enrollment_id") @db.Uuid
+  moduleId           String   @map("module_id") @db.Uuid
+  status             String   @default("not_started") @db.Text
+  startedAt          DateTime? @map("started_at") @db.Timestamptz(6)
+  completedAt        DateTime? @map("completed_at") @db.Timestamptz(6)
+  progressPercentage Int      @default(0) @map("progress_percentage")
+
+  // Relations
+  enrollment Enrollment   @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  module     CourseModule @relation(fields: [moduleId], references: [id])
+
+  @@unique([enrollmentId, moduleId])
+  @@map("progress")
+}
+
+// Admin actions table
+model AdminAction {
+  id         String   @id @default(uuid()) @db.Uuid
+  adminId    String   @map("admin_id") @db.Uuid
+  actionType String   @map("action_type")
+  targetType String   @map("target_type")
+  targetId   String   @map("target_id") @db.Uuid
+  details    Json?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relations
+  admin User @relation(fields: [adminId], references: [id])
+
+  @@map("admin_actions")
+}
+
+// Events table (matches your Supabase events table)
+model Event {
+  id          String    @id @default(uuid()) @db.Uuid
+  title       String
+  description String?
+  content     String?
+  startDate   DateTime  @map("start_date") @db.Timestamptz(6)
+  endDate     DateTime? @map("end_date") @db.Timestamptz(6)
+  location    String?
+  type        String    @default("workshop") @db.Text
+  status      String    @default("scheduled") @db.Text
+  courseId    String?   @map("course_id") @db.Uuid
+  instructorId String?  @map("instructor_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  course     Course? @relation(fields: [courseId], references: [id])
+  instructor User?   @relation(fields: [instructorId], references: [id])
+
+  @@map("events")
+}
+
+// Blog posts table (matches your Supabase blog_posts table)
+model BlogPost {
+  id          String    @id @default(uuid()) @db.Uuid
+  title       String
+  content     String
+  excerpt     String?
+  slug        String    @unique
+  authorId    String    @map("author_id") @db.Uuid
+  category    String
+  tags        String?   // JSON array
+  status      String    @default("draft") @db.Text
+  featured    Boolean   @default(false)
+  views       Int       @default(0)
+  publishedAt DateTime? @map("published_at") @db.Timestamptz(6)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  author User @relation(fields: [authorId], references: [id])
+
+  @@map("blog_posts")
+}
+
+// Contact messages table (matches your Supabase contact_messages table)
+model ContactMessage {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  email     String
+  phone     String?
+  subject   String
+  message   String
+  service   String?
+  status    String   @default("new") @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@map("contact_messages")
+}
+
+// Payments table (matches your Supabase payments table)
+model Payment {
+  id            String   @id @default(uuid()) @db.Uuid
+  studentId     String   @map("student_id") @db.Uuid
+  courseId      String   @map("course_id") @db.Uuid
+  amount        Decimal  @db.Decimal(10, 2)
+  status        String   @default("pending") @db.Text
+  method        String   @db.Text
+  transactionId String?  @map("transaction_id")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  student User   @relation(fields: [studentId], references: [id])
+  course  Course @relation(fields: [courseId], references: [id])
+
+  @@map("payments")
+}
+
+// Testimonials table (matches your Supabase testimonials table)
+model Testimonial {
+  id        String   @id @default(uuid()) @db.Uuid
+  studentId String   @map("student_id") @db.Uuid
+  courseId  String   @map("course_id") @db.Uuid
+  content   String
+  rating    Int?
+  status    String   @default("pending") @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  student User   @relation(fields: [studentId], references: [id])
+  course  Course @relation(fields: [courseId], references: [id])
+
+  @@map("testimonials")
+}
