@@ -1,33 +1,77 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { StudentService } from '@/backend/services/studentService'
-import { CourseService } from '@/backend/services/courseService'
-import { BlogService } from '@/backend/services/blogService'
-import { EventService } from '@/backend/services/eventService'
+import { validateEnvironment } from '@/lib/env-check'
 
-const studentService = new StudentService()
-const courseService = new CourseService()
-const blogService = new BlogService()
-const eventService = new EventService()
+// Dynamic imports to handle Prisma client availability
+let studentService: any = null
+let courseService: any = null
+let blogService: any = null
+let eventService: any = null
+
+// Check if environment is properly configured
+const isEnvValid = validateEnvironment()
+
+// Try to import services, fallback to null if Prisma isn't available
+if (isEnvValid) {
+  try {
+    const { StudentService } = await import('@/backend/services/studentService')
+    const { CourseService } = await import('@/backend/services/courseService')
+    const { BlogService } = await import('@/backend/services/blogService')
+    const { EventService } = await import('@/backend/services/eventService')
+    
+    studentService = new StudentService()
+    courseService = new CourseService()
+    blogService = new BlogService()
+    eventService = new EventService()
+  } catch (error) {
+    console.log('Services not available, using mock data:', error)
+  }
+} else {
+  console.log('Environment not configured, using mock data')
+}
 
 export async function GET(request: NextRequest) {
   try {
     // For now, allow access without authentication for development
     // TODO: Add proper authentication in production
     
-    // Try to get real data, fallback to mock data if database is empty
+    // Try to get real data, fallback to mock data if services are not available
     let studentStats, blogStats, upcomingEvents, recentCourses;
     
-    try {
-      [studentStats, blogStats, upcomingEvents, recentCourses] = await Promise.all([
-        studentService.getStudentStats(),
-        blogService.getBlogStats(),
-        eventService.getUpcomingEvents(5),
-        courseService.getCourses({ limit: 5, isPublished: true })
-      ])
-    } catch (dbError) {
-      console.log('Database not ready, using mock data:', dbError.message)
+    if (studentService && courseService && blogService && eventService) {
+      try {
+        [studentStats, blogStats, upcomingEvents, recentCourses] = await Promise.all([
+          studentService.getStudentStats(),
+          blogService.getBlogStats(),
+          eventService.getUpcomingEvents(5),
+          courseService.getCourses({ limit: 5, isPublished: true })
+        ])
+      } catch (dbError) {
+        console.log('Database not ready, using mock data:', dbError.message)
+        
+        // Provide mock data for development
+        studentStats = {
+          totalStudents: 0,
+          activeStudents: 0,
+          newStudentsThisMonth: 0,
+          totalEnrollments: 0,
+          completedEnrollments: 0,
+          averageProgress: 0,
+          completionRate: 0
+        }
+        
+        blogStats = {
+          totalPosts: 0,
+          publishedPosts: 0,
+          totalViews: 0
+        }
+        
+        upcomingEvents = []
+        recentCourses = { courses: [] }
+      }
+    } else {
+      console.log('Services not available, using mock data')
       
-      // Provide mock data for development
+      // Provide mock data when services are not available
       studentStats = {
         totalStudents: 0,
         activeStudents: 0,
