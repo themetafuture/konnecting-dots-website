@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { AuthService } from '../../../../backend/services/authService'
-import { verifyToken, extractTokenFromHeader } from '../../../../backend/utils/auth'
+import { AuthService } from '@/backend/services/authService'
+import { verifyToken, extractTokenFromHeader } from '@/backend/utils/auth'
 
 const authService = new AuthService()
 

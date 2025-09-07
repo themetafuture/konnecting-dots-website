@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { StudentService } from '../../../../backend/services/studentService'
+import { StudentService } from '@/backend/services/studentService'
 
 const studentService = new StudentService()
 

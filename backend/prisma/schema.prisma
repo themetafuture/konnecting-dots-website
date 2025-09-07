@@ -16,7 +16,7 @@ model User {
   password  String
   firstName String
   lastName  String
-  role      UserRole @default(STUDENT)
+  role      String @default("STUDENT")
   phone     String?
   avatar    String?
   isActive  Boolean  @default(true)
@@ -41,9 +41,9 @@ model Course {
   content     String?
   price       Float
   duration    Int         // in hours
-  level       CourseLevel
-  category    CourseCategory
-  status      CourseStatus @default(DRAFT)
+  level       String
+  category    String
+  status      String @default("DRAFT")
   image       String?
   videoUrl    String?
   materials   String?     // JSON array of material URLs
@@ -65,7 +65,7 @@ model Enrollment {
   id        String           @id @default(cuid())
   userId    String
   courseId  String
-  status    EnrollmentStatus @default(ACTIVE)
+  status    String @default("ACTIVE")
   progress  Int              @default(0) // percentage
   startedAt DateTime?
   completedAt DateTime?
@@ -86,8 +86,8 @@ model Event {
   title       String
   description String
   courseId    String?
-  type        EventType
-  status      EventStatus @default(SCHEDULED)
+  type        String
+  status      String @default("SCHEDULED")
   startDate   DateTime
   endDate     DateTime
   location    String?
@@ -110,8 +110,8 @@ model Session {
   enrollmentId String?
   eventId     String?
   userId      String
-  type        SessionType
-  status      SessionStatus @default(SCHEDULED)
+  type        String
+  status      String @default("SCHEDULED")
   scheduledAt DateTime
   duration    Int           // in minutes
   notes       String?
@@ -134,8 +134,8 @@ model Payment {
   eventId     String?
   amount      Float
   currency    String        @default("USD")
-  status      PaymentStatus @default(PENDING)
-  method      PaymentMethod
+  status      String @default("PENDING")
+  method      String
   transactionId String?
   description String?
   metadata    String?       // JSON data
@@ -157,9 +157,9 @@ model BlogPost {
   content     String
   excerpt     String?
   authorId    String
-  category    BlogCategory
+  category    String
   tags        String?     // JSON array
-  status      PostStatus  @default(DRAFT)
+  status      String @default("DRAFT")
   featured    Boolean     @default(false)
   image       String?
   readTime    Int?        // in minutes
@@ -200,7 +200,7 @@ model Contact {
   phone     String?
   subject   String
   message   String
-  status    ContactStatus @default(NEW)
+  status    String @default("NEW")
   response  String?
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
@@ -218,109 +218,4 @@ model Newsletter {
   @@map("newsletter")
 }
 
-// Enums
-enum UserRole {
-  ADMIN
-  INSTRUCTOR
-  STUDENT
-}
-
-enum CourseLevel {
-  BEGINNER
-  INTERMEDIATE
-  ADVANCED
-  EXPERT
-}
-
-enum CourseCategory {
-  NLP
-  HYPNOSIS
-  CORPORATE_TRAINING
-  DEI_TRAINING
-  TRAIN_THE_TRAINER
-  PRACTITIONER
-  PERSONAL_DEVELOPMENT
-}
-
-enum CourseStatus {
-  DRAFT
-  PUBLISHED
-  ARCHIVED
-}
-
-enum EnrollmentStatus {
-  ACTIVE
-  COMPLETED
-  PAUSED
-  CANCELLED
-}
-
-enum EventType {
-  WORKSHOP
-  SEMINAR
-  CONFERENCE
-  RETREAT
-  ONLINE_SESSION
-  ONE_ON_ONE
-}
-
-enum EventStatus {
-  SCHEDULED
-  ONGOING
-  COMPLETED
-  CANCELLED
-}
-
-enum SessionType {
-  CONSULTATION
-  COACHING
-  TRAINING
-  FOLLOW_UP
-}
-
-enum SessionStatus {
-  SCHEDULED
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
-  NO_SHOW
-}
-
-enum PaymentStatus {
-  PENDING
-  COMPLETED
-  FAILED
-  REFUNDED
-  CANCELLED
-}
-
-enum PaymentMethod {
-  CREDIT_CARD
-  BANK_TRANSFER
-  PAYPAL
-  STRIPE
-  CASH
-}
-
-enum BlogCategory {
-  NLP_TECHNIQUES
-  HYPNOSIS
-  CORPORATE_TRAINING
-  PERSONAL_DEVELOPMENT
-  CASE_STUDIES
-  WELLNESS
-  LEADERSHIP
-}
-
-enum PostStatus {
-  DRAFT
-  PUBLISHED
-  ARCHIVED
-}
-
-enum ContactStatus {
-  NEW
-  IN_PROGRESS
-  RESOLVED
-  CLOSED
-}
+// Note: Enums are not supported in SQLite, using String types instead

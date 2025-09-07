@@ -21,6 +21,8 @@ import {
   Instagram,
   Linkedin,
   Youtube,
+  CheckCircle,
+  Loader2,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -34,10 +36,48 @@ export default function ContactPage() {
     service: "",
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
+  const [submitMessage, setSubmitMessage] = useState('')
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle form submission
-    console.log("Form submitted:", formData)
+    setIsSubmitting(true)
+    setSubmitStatus('idle')
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setSubmitStatus('success')
+        setSubmitMessage(result.message)
+        setFormData({
+          name: "",
+          email: "",
+          phone: "",
+          subject: "",
+          message: "",
+          service: "",
+        })
+      } else {
+        setSubmitStatus('error')
+        setSubmitMessage(result.message || 'Failed to send message. Please try again.')
+      }
+    } catch (error) {
+      console.error('Contact form error:', error)
+      setSubmitStatus('error')
+      setSubmitMessage('Failed to send message. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -160,9 +200,43 @@ export default function ContactPage() {
                       />
                     </div>
 
-                    <Button type="submit" size="lg" className="w-full bg-blue-600 hover:bg-blue-700">
-                      <Send className="mr-2 h-5 w-5" />
-                      Send Message
+                    {submitStatus === 'success' && (
+                      <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center">
+                          <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
+                          <p className="text-green-800 font-medium">{submitMessage}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {submitStatus === 'error' && (
+                      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="flex items-center">
+                          <div className="h-5 w-5 bg-red-600 rounded-full mr-2 flex items-center justify-center">
+                            <span className="text-white text-xs">!</span>
+                          </div>
+                          <p className="text-red-800 font-medium">{submitMessage}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    <Button 
+                      type="submit" 
+                      size="lg" 
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="mr-2 h-5 w-5" />
+                          Send Message
+                        </>
+                      )}
                     </Button>
 
                     <p className="text-sm text-gray-600 text-center">

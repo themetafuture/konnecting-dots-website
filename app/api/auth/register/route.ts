@@ -1,38 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { AuthService } from '../../../../backend/services/authService'
-import { validate } from '../../../../backend/middleware/validation'
-import { registerSchema } from '../../../../backend/utils/validation'
+import { AuthService } from '@/backend/services/authService'
 
 const authService = new AuthService()
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    
-    // Validate request data
-    const validatedData = registerSchema.parse(body)
-    
-    // Register user
-    const result = await authService.register(validatedData)
-    
+    const result = await authService.register(body)
+
     return NextResponse.json({
       success: true,
-      message: 'User registered successfully',
+      message: 'Account created successfully',
       data: result
-    }, { status: 201 })
+    })
+
   } catch (error: any) {
     console.error('Registration error:', error)
     
-    if (error.statusCode) {
-      return NextResponse.json({
-        success: false,
-        error: error.message
-      }, { status: error.statusCode })
-    }
-    
     return NextResponse.json({
       success: false,
-      error: 'Registration failed'
-    }, { status: 500 })
+      message: error.message || 'Failed to create account'
+    }, { status: error.status || 500 })
   }
+}
+
+export async function GET() {
+  return NextResponse.json({
+    success: false,
+    message: 'Method not allowed'
+  }, { status: 405 })
 }

@@ -34,12 +34,55 @@ export default function BookingModal({ children }: BookingModalProps) {
     message: "",
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
+  const [submitMessage, setSubmitMessage] = useState('')
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle form submission here
-    console.log("Booking submitted:", formData)
-    setIsOpen(false)
-    // You can add actual form submission logic here
+    setIsSubmitting(true)
+    setSubmitStatus('idle')
+
+    try {
+      const response = await fetch('/api/booking', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setSubmitStatus('success')
+        setSubmitMessage(result.message)
+        // Reset form
+        setFormData({
+          name: "",
+          email: "",
+          phone: "",
+          service: "",
+          preferredDate: "",
+          preferredTime: "",
+          message: "",
+        })
+        // Close modal after 2 seconds
+        setTimeout(() => {
+          setIsOpen(false)
+          setSubmitStatus('idle')
+        }, 2000)
+      } else {
+        setSubmitStatus('error')
+        setSubmitMessage(result.message || 'Failed to book session. Please try again.')
+      }
+    } catch (error) {
+      console.error('Booking error:', error)
+      setSubmitStatus('error')
+      setSubmitMessage('Failed to book session. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleInputChange = (field: string, value: string) => {
@@ -189,13 +232,46 @@ export default function BookingModal({ children }: BookingModalProps) {
             </div>
           </div>
 
+          {/* Status Messages */}
+          {submitStatus === 'success' && (
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center">
+                <div className="h-5 w-5 bg-green-600 rounded-full mr-2 flex items-center justify-center">
+                  <span className="text-white text-xs">✓</span>
+                </div>
+                <p className="text-green-800 font-medium">{submitMessage}</p>
+              </div>
+            </div>
+          )}
+
+          {submitStatus === 'error' && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center">
+                <div className="h-5 w-5 bg-red-600 rounded-full mr-2 flex items-center justify-center">
+                  <span className="text-white text-xs">!</span>
+                </div>
+                <p className="text-red-800 font-medium">{submitMessage}</p>
+              </div>
+            </div>
+          )}
+
           {/* Submit Button */}
           <div className="flex gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => setIsOpen(false)} className="flex-1">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setIsOpen(false)} 
+              className="flex-1"
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold">
-              Book Session
+            <Button 
+              type="submit" 
+              className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Booking...' : 'Book Session'}
             </Button>
           </div>
         </form>

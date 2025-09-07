@@ -22,6 +22,7 @@ import {
   Eye,
   Edit,
   Loader2,
+  MessageCircle,
 } from "lucide-react"
 
 interface Student {
@@ -84,6 +85,20 @@ interface DashboardData {
     location?: string
   }>
   recentCourses: Course[]
+  pendingApprovals: {
+    students: number
+    courses: number
+    payments: number
+    testimonials: number
+    contacts: number
+  }
+  recentActivity: Array<{
+    id: string
+    type: string
+    description: string
+    timestamp: string
+    user: string
+  }>
 }
 
 export default function AdminDashboard() {
@@ -93,11 +108,21 @@ export default function AdminDashboard() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [students, setStudents] = useState<Student[]>([])
   const [courses, setCourses] = useState<Course[]>([])
+  const [payments, setPayments] = useState<Array<{
+    id: string
+    studentName: string
+    course: string
+    amount: number
+    status: string
+    method: string
+    date: string
+  }>>([])
 
   useEffect(() => {
     fetchDashboardData()
     fetchStudents()
     fetchCourses()
+    fetchPayments()
   }, [])
 
   const fetchDashboardData = async () => {
@@ -135,6 +160,44 @@ export default function AdminDashboard() {
       }
     } catch (error) {
       console.error('Failed to fetch courses:', error)
+    }
+  }
+
+  const fetchPayments = async () => {
+    try {
+      // Mock data for now - replace with actual API call
+      const mockPayments = [
+        {
+          id: '1',
+          studentName: 'John Doe',
+          course: 'NLP Practitioner Certification',
+          amount: 2500,
+          status: 'completed',
+          method: 'Credit Card',
+          date: '2024-01-15'
+        },
+        {
+          id: '2',
+          studentName: 'Jane Smith',
+          course: 'Hypnosis Mastery',
+          amount: 1800,
+          status: 'pending',
+          method: 'Bank Transfer',
+          date: '2024-01-16'
+        },
+        {
+          id: '3',
+          studentName: 'Mike Johnson',
+          course: 'Corporate Training',
+          amount: 5000,
+          status: 'completed',
+          method: 'PayPal',
+          date: '2024-01-17'
+        }
+      ]
+      setPayments(mockPayments)
+    } catch (error) {
+      console.error('Failed to fetch payments:', error)
     }
   }
 
@@ -246,14 +309,108 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
+        {/* Pending Approvals Alert */}
+        {dashboardData.pendingApprovals && (
+          <Card className="border-orange-200 bg-orange-50">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                    <span className="text-orange-600 font-bold">!</span>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-orange-800">Pending Approvals</h3>
+                    <p className="text-sm text-orange-700">
+                      {Object.values(dashboardData.pendingApprovals).reduce((a, b) => a + b, 0)} items need your attention
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  {dashboardData.pendingApprovals.students > 0 && (
+                    <Badge className="bg-orange-100 text-orange-800">
+                      {dashboardData.pendingApprovals.students} Students
+                    </Badge>
+                  )}
+                  {dashboardData.pendingApprovals.payments > 0 && (
+                    <Badge className="bg-orange-100 text-orange-800">
+                      {dashboardData.pendingApprovals.payments} Payments
+                    </Badge>
+                  )}
+                  {dashboardData.pendingApprovals.testimonials > 0 && (
+                    <Badge className="bg-orange-100 text-orange-800">
+                      {dashboardData.pendingApprovals.testimonials} Testimonials
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Main Content Tabs */}
-        <Tabs defaultValue="students" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-6">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="students">Students</TabsTrigger>
             <TabsTrigger value="courses">Courses</TabsTrigger>
             <TabsTrigger value="payments">Payments</TabsTrigger>
+            <TabsTrigger value="approvals">Approvals</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
+
+          {/* Overview Tab */}
+          <TabsContent value="overview">
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Recent Activity */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Activity</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {dashboardData.recentActivity?.map((activity) => (
+                      <div key={activity.id} className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-teal-600 rounded-full mt-2 flex-shrink-0"></div>
+                        <div className="flex-1">
+                          <p className="text-sm text-gray-900">{activity.description}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs text-gray-500">{activity.user}</span>
+                            <span className="text-xs text-gray-400">•</span>
+                            <span className="text-xs text-gray-500">{activity.timestamp}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Upcoming Events */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Upcoming Events</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {dashboardData.upcomingEvents?.map((event) => (
+                      <div key={event.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                          <h4 className="font-medium text-sm">{event.title}</h4>
+                          <p className="text-xs text-gray-600">
+                            {new Date(event.startDate).toLocaleDateString()}
+                            {event.location && ` • ${event.location}`}
+                          </p>
+                        </div>
+                        <Button size="sm" variant="outline">
+                          View
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
 
           {/* Students Tab */}
           <TabsContent value="students">
@@ -462,6 +619,197 @@ export default function AdminDashboard() {
                 </Table>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Approvals Tab */}
+          <TabsContent value="approvals">
+            <div className="space-y-6">
+              {/* Pending Student Registrations */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-blue-600" />
+                    Pending Student Registrations
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Student</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Program</TableHead>
+                        <TableHead>Registration Date</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">John Smith</div>
+                            <div className="text-sm text-gray-500">+1 (555) 123-4567</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>john.smith@email.com</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">NLP Practitioner</Badge>
+                        </TableCell>
+                        <TableCell>2024-01-20</TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Approve
+                            </Button>
+                            <Button size="sm" variant="outline">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="outline" className="text-red-600">
+                              Reject
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+
+              {/* Pending Payments */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-green-600" />
+                    Pending Payments
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Student</TableHead>
+                        <TableHead>Course</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Method</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell className="font-medium">Sarah Johnson</TableCell>
+                        <TableCell>NLP Practitioner Certification</TableCell>
+                        <TableCell>$1,299.00</TableCell>
+                        <TableCell>Credit Card</TableCell>
+                        <TableCell>2024-01-20</TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Approve
+                            </Button>
+                            <Button size="sm" variant="outline">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="outline" className="text-red-600">
+                              Reject
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+
+              {/* Pending Testimonials */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageCircle className="h-5 w-5 text-purple-600" />
+                    Pending Testimonials
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="p-4 border rounded-lg">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h4 className="font-medium">Michael Chen</h4>
+                          <p className="text-sm text-gray-600">NLP Practitioner Graduate</p>
+                        </div>
+                        <Badge variant="outline">Pending Review</Badge>
+                      </div>
+                      <p className="text-sm text-gray-700 mb-3">
+                        "The NLP training completely transformed my communication skills. I now feel confident in any professional setting. Highly recommended!"
+                      </p>
+                      <div className="flex items-center space-x-2">
+                        <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          Approve
+                        </Button>
+                        <Button size="sm" variant="outline">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="outline" className="text-red-600">
+                          Reject
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Contact Form Submissions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Mail className="h-5 w-5 text-orange-600" />
+                    Contact Form Submissions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Subject</TableHead>
+                        <TableHead>Service</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell className="font-medium">Lisa Rodriguez</TableCell>
+                        <TableCell>lisa.rodriguez@email.com</TableCell>
+                        <TableCell>Corporate Training Inquiry</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">Corporate Training</Badge>
+                        </TableCell>
+                        <TableCell>2024-01-20</TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                              <Mail className="h-4 w-4 mr-1" />
+                              Respond
+                            </Button>
+                            <Button size="sm" variant="outline">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="outline" className="text-green-600">
+                              Mark Resolved
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* Settings Tab */}

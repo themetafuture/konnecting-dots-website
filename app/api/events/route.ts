@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { EventService } from '../../../../backend/services/eventService'
+import { EventService } from '@/backend/services/eventService'
 
 const eventService = new EventService()
 

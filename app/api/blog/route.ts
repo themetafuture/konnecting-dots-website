@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { BlogService } from '../../../../backend/services/blogService'
+import { BlogService } from '@/backend/services/blogService'
 
 const blogService = new BlogService()
 

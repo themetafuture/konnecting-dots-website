@@ -5,7 +5,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Menu, X } from "lucide-react"
+import { Menu, X, Search } from "lucide-react"
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -15,8 +15,10 @@ import {
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu"
 import BookingModal from "./booking-modal"
+import SearchModal from "./search-modal"
 
 export default function Header() {
+  
   const [isOpen, setIsOpen] = useState(false)
 
   return (
@@ -130,6 +132,11 @@ export default function Header() {
 
           {/* CTA Buttons */}
           <div className="hidden lg:flex items-center space-x-4">
+            <SearchModal>
+              <Button variant="outline" size="icon" className="border-gray-300 text-gray-600 hover:bg-gray-50 bg-transparent">
+                <Search className="h-4 w-4" />
+              </Button>
+            </SearchModal>
             <Link href="/login">
               <Button variant="outline" className="border-teal-600 text-teal-600 hover:bg-teal-50 bg-transparent">
                 Student Login
@@ -259,6 +266,16 @@ export default function Header() {
                 </Link>
 
                 <div className="pt-6 space-y-3">
+                  <SearchModal>
+                    <Button
+                      variant="outline"
+                      className="w-full border-gray-300 text-gray-600 hover:bg-gray-50 bg-transparent"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <Search className="mr-2 h-4 w-4" />
+                      Search
+                    </Button>
+                  </SearchModal>
                   <Link href="/login" onClick={() => setIsOpen(false)}>
                     <Button
                       variant="outline"

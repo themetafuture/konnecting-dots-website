@@ -28,6 +28,7 @@ import {
   TrendingUp,
   Globe,
   Mail,
+  Loader2,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -39,10 +40,38 @@ export default function LoginPage() {
     password: "",
   })
 
-  const handleLogin = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [loginError, setLoginError] = useState('')
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Simulate login
-    setIsLoggedIn(true)
+    setIsSubmitting(true)
+    setLoginError('')
+
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(loginData),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setIsLoggedIn(true)
+        // Store user data in localStorage for client-side access
+        localStorage.setItem('user', JSON.stringify(result.data.user))
+      } else {
+        setLoginError(result.message || 'Login failed. Please check your credentials.')
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      setLoginError('Login failed. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,6 +79,18 @@ export default function LoginPage() {
       ...loginData,
       [e.target.name]: e.target.value,
     })
+  }
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+      })
+      localStorage.removeItem('user')
+      setIsLoggedIn(false)
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
   }
 
   if (!isLoggedIn) {
@@ -122,8 +163,30 @@ export default function LoginPage() {
                     </Link>
                   </div>
 
-                  <Button type="submit" className="w-full bg-teal-600 hover:bg-teal-700 text-white">
-                    Sign In
+                  {loginError && (
+                    <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                      <div className="flex items-center">
+                        <div className="h-5 w-5 bg-red-600 rounded-full mr-2 flex items-center justify-center">
+                          <span className="text-white text-xs">!</span>
+                        </div>
+                        <p className="text-red-800 font-medium">{loginError}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-teal-600 hover:bg-teal-700 text-white"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Signing In...
+                      </>
+                    ) : (
+                      'Sign In'
+                    )}
                   </Button>
                 </form>
 
@@ -202,7 +265,7 @@ export default function LoginPage() {
                 <p className="text-xl text-gray-600 text-pretty">Continue your transformation journey</p>
               </div>
               <Button
-                onClick={() => setIsLoggedIn(false)}
+                onClick={handleLogout}
                 variant="outline"
                 className="border-gray-300 text-gray-600 hover:bg-gray-50 bg-transparent"
               >

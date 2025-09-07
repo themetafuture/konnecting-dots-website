@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Logout successful'
     })
-    
+
     // Clear the auth token cookie
     response.cookies.set('auth-token', '', {
       httpOnly: true,
@@ -14,14 +14,22 @@ export async function POST(request: NextRequest) {
       sameSite: 'strict',
       maxAge: 0
     })
-    
+
     return response
+
   } catch (error) {
     console.error('Logout error:', error)
     
     return NextResponse.json({
       success: false,
-      error: 'Logout failed'
+      message: 'Logout failed'
     }, { status: 500 })
   }
+}
+
+export async function GET() {
+  return NextResponse.json({
+    success: false,
+    message: 'Method not allowed'
+  }, { status: 405 })
 }

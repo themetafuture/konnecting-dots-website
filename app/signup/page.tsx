@@ -1,15 +1,13 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
+import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Eye, EyeOff, Users, CheckCircle, ArrowRight, Shield, Award, Video, Headphones } from "lucide-react"
+import { Eye, EyeOff, Users, CheckCircle, ArrowRight, Shield, Award, Video, Headphones, Loader2 } from "lucide-react"
 import Link from "next/link"
 
 export default function SignupPage() {
@@ -27,10 +25,67 @@ export default function SignupPage() {
     subscribeNewsletter: true,
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
+  const [submitMessage, setSubmitMessage] = useState('')
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle form submission
-    console.log("Form submitted:", formData)
+    setIsSubmitting(true)
+    setSubmitStatus('idle')
+
+    // Validate passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setSubmitStatus('error')
+      setSubmitMessage('Passwords do not match')
+      setIsSubmitting(false)
+      return
+    }
+
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          password: formData.password,
+          role: 'STUDENT',
+        }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setSubmitStatus('success')
+        setSubmitMessage('Account created successfully! You can now sign in.')
+        // Reset form
+        setFormData({
+          firstName: "",
+          lastName: "",
+          email: "",
+          phone: "",
+          password: "",
+          confirmPassword: "",
+          program: "",
+          agreeToTerms: false,
+          subscribeNewsletter: true,
+        })
+      } else {
+        setSubmitStatus('error')
+        setSubmitMessage(result.message || 'Failed to create account. Please try again.')
+      }
+    } catch (error) {
+      console.error('Registration error:', error)
+      setSubmitStatus('error')
+      setSubmitMessage('Failed to create account. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -231,13 +286,42 @@ export default function SignupPage() {
                       </div>
                     </div>
 
+                    {submitStatus === 'success' && (
+                      <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center">
+                          <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
+                          <p className="text-green-800 font-medium">{submitMessage}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {submitStatus === 'error' && (
+                      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="flex items-center">
+                          <div className="h-5 w-5 bg-red-600 rounded-full mr-2 flex items-center justify-center">
+                            <span className="text-white text-xs">!</span>
+                          </div>
+                          <p className="text-red-800 font-medium">{submitMessage}</p>
+                        </div>
+                      </div>
+                    )}
+
                     <Button
                       type="submit"
                       className="w-full bg-teal-600 hover:bg-teal-700 text-white"
-                      disabled={!formData.agreeToTerms}
+                      disabled={!formData.agreeToTerms || isSubmitting}
                     >
-                      Create Account
-                      <ArrowRight className="ml-2 h-5 w-5" />
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          Creating Account...
+                        </>
+                      ) : (
+                        <>
+                          Create Account
+                          <ArrowRight className="ml-2 h-5 w-5" />
+                        </>
+                      )}
                     </Button>
 
                     <div className="text-center">
