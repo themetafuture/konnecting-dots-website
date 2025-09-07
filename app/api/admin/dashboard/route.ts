@@ -1,32 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { validateEnvironment } from '@/lib/env-check'
 
-// Dynamic imports to handle Prisma client availability
-let studentService: any = null
-let courseService: any = null
-let blogService: any = null
-let eventService: any = null
-
-// Check if environment is properly configured
-const isEnvValid = validateEnvironment()
-
-// Try to import services, fallback to null if Prisma isn't available
-if (isEnvValid) {
-  try {
-    const { StudentService } = await import('@/backend/services/studentService')
-    const { CourseService } = await import('@/backend/services/courseService')
-    const { BlogService } = await import('@/backend/services/blogService')
-    const { EventService } = await import('@/backend/services/eventService')
-    
-    studentService = new StudentService()
-    courseService = new CourseService()
-    blogService = new BlogService()
-    eventService = new EventService()
-  } catch (error) {
-    console.log('Services not available, using mock data:', error)
-  }
-} else {
-  console.log('Environment not configured, using mock data')
+// Mock data for when services are not available
+const mockDashboard = {
+  students: {
+    totalStudents: 0,
+    activeStudents: 0,
+    newStudentsThisMonth: 0,
+    totalEnrollments: 0,
+    completedEnrollments: 0,
+    averageProgress: 0,
+    completionRate: 0
+  },
+  blog: {
+    totalPosts: 0,
+    publishedPosts: 0,
+    totalViews: 0
+  },
+  upcomingEvents: [],
+  recentCourses: [],
+  pendingApprovals: {
+    students: 0,
+    courses: 0,
+    payments: 0,
+    testimonials: 0,
+    contacts: 0
+  },
+  recentActivity: [
+    {
+      id: '1',
+      type: 'student_registration',
+      description: 'New student registered for NLP Practitioner course',
+      timestamp: '2 hours ago',
+      user: 'John Doe'
+    },
+    {
+      id: '2',
+      type: 'course_completion',
+      description: 'Student completed Hypnosis Mastery course',
+      timestamp: '4 hours ago',
+      user: 'Jane Smith'
+    },
+    {
+      id: '3',
+      type: 'payment_received',
+      description: 'Payment received for Corporate Training',
+      timestamp: '6 hours ago',
+      user: 'Mike Johnson'
+    }
+  ],
+  totalRevenue: 0,
+  monthlyGrowth: 0,
 }
 
 export async function GET(request: NextRequest) {
@@ -34,138 +57,89 @@ export async function GET(request: NextRequest) {
     // For now, allow access without authentication for development
     // TODO: Add proper authentication in production
     
+    // Check if we're in a build environment or if environment variables are missing
+    const isBuildTime = process.env.NODE_ENV === 'production' && !process.env.VERCEL
+    const hasEnvVars = process.env.DATABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL
+    
+    if (isBuildTime || !hasEnvVars) {
+      console.log('Build time or missing env vars, using mock data')
+      return NextResponse.json({
+        success: true,
+        data: mockDashboard
+      })
+    }
+    
     // Try to get real data, fallback to mock data if services are not available
-    let studentStats, blogStats, upcomingEvents, recentCourses;
-    
-    if (studentService && courseService && blogService && eventService) {
-      try {
-        [studentStats, blogStats, upcomingEvents, recentCourses] = await Promise.all([
-          studentService.getStudentStats(),
-          blogService.getBlogStats(),
-          eventService.getUpcomingEvents(5),
-          courseService.getCourses({ limit: 5, isPublished: true })
-        ])
-      } catch (dbError) {
-        console.log('Database not ready, using mock data:', dbError.message)
-        
-        // Provide mock data for development
-        studentStats = {
-          totalStudents: 0,
-          activeStudents: 0,
-          newStudentsThisMonth: 0,
-          totalEnrollments: 0,
-          completedEnrollments: 0,
-          averageProgress: 0,
-          completionRate: 0
-        }
-        
-        blogStats = {
-          totalPosts: 0,
-          publishedPosts: 0,
-          totalViews: 0
-        }
-        
-        upcomingEvents = []
-        recentCourses = { courses: [] }
-      }
-    } else {
-      console.log('Services not available, using mock data')
+    try {
+      const { StudentService } = await import('@/backend/services/studentService')
+      const { CourseService } = await import('@/backend/services/courseService')
+      const { BlogService } = await import('@/backend/services/blogService')
+      const { EventService } = await import('@/backend/services/eventService')
       
-      // Provide mock data when services are not available
-      studentStats = {
-        totalStudents: 0,
-        activeStudents: 0,
-        newStudentsThisMonth: 0,
-        totalEnrollments: 0,
-        completedEnrollments: 0,
-        averageProgress: 0,
-        completionRate: 0
-      }
+      const studentService = new StudentService()
+      const courseService = new CourseService()
+      const blogService = new BlogService()
+      const eventService = new EventService()
       
-      blogStats = {
-        totalPosts: 0,
-        publishedPosts: 0,
-        totalViews: 0
-      }
+      const [studentStats, blogStats, upcomingEvents, recentCourses] = await Promise.all([
+        studentService.getStudentStats(),
+        blogService.getBlogStats(),
+        eventService.getUpcomingEvents(5),
+        courseService.getCourses({ limit: 5, isPublished: true })
+      ])
       
-      upcomingEvents = []
-      recentCourses = { courses: [] }
-    }
-    
-    const dashboard = {
-      students: studentStats,
-      blog: blogStats,
-      upcomingEvents,
-      recentCourses: recentCourses.courses || [],
-      pendingApprovals: {
-        students: 0,
-        courses: 0,
-        payments: 0,
-        testimonials: 0,
-        contacts: 0
-      },
-      recentActivity: [
-        {
-          id: '1',
-          type: 'student_registration',
-          description: 'New student registered for NLP Practitioner course',
-          timestamp: '2 hours ago',
-          user: 'John Doe'
+      const dashboard = {
+        students: studentStats,
+        blog: blogStats,
+        upcomingEvents,
+        recentCourses: recentCourses.courses || [],
+        pendingApprovals: {
+          students: 0,
+          courses: 0,
+          payments: 0,
+          testimonials: 0,
+          contacts: 0
         },
-        {
-          id: '2',
-          type: 'course_completion',
-          description: 'Student completed Hypnosis Mastery course',
-          timestamp: '4 hours ago',
-          user: 'Jane Smith'
-        },
-        {
-          id: '3',
-          type: 'payment_received',
-          description: 'Payment received for Corporate Training',
-          timestamp: '6 hours ago',
-          user: 'Mike Johnson'
-        }
-      ],
-      // Calculate additional metrics
-      totalRevenue: 0, // TODO: Calculate from payments
-      monthlyGrowth: 0, // TODO: Calculate growth metrics
+        recentActivity: [
+          {
+            id: '1',
+            type: 'student_registration',
+            description: 'New student registered for NLP Practitioner course',
+            timestamp: '2 hours ago',
+            user: 'John Doe'
+          },
+          {
+            id: '2',
+            type: 'course_completion',
+            description: 'Student completed Hypnosis Mastery course',
+            timestamp: '4 hours ago',
+            user: 'Jane Smith'
+          },
+          {
+            id: '3',
+            type: 'payment_received',
+            description: 'Payment received for Corporate Training',
+            timestamp: '6 hours ago',
+            user: 'Mike Johnson'
+          }
+        ],
+        totalRevenue: 0,
+        monthlyGrowth: 0,
+      }
+      
+      return NextResponse.json({
+        success: true,
+        data: dashboard
+      })
+    } catch (dbError) {
+      console.log('Database not ready, using mock data:', dbError.message)
+      return NextResponse.json({
+        success: true,
+        data: mockDashboard
+      })
     }
-    
-    return NextResponse.json({
-      success: true,
-      data: dashboard
-    })
   } catch (error: any) {
     console.error('Dashboard fetch error:', error)
-    
-    // Return mock data on error
-    const mockDashboard = {
-      students: {
-        totalStudents: 0,
-        activeStudents: 0,
-        newStudentsThisMonth: 0,
-        totalEnrollments: 0,
-        completedEnrollments: 0,
-        averageProgress: 0,
-        completionRate: 0
-      },
-      blog: {
-        totalPosts: 0,
-        publishedPosts: 0,
-        totalViews: 0
-      },
-      upcomingEvents: [],
-      recentCourses: [],
-      pendingApprovals: {
-        students: 0,
-        courses: 0,
-        payments: 0,
-        testimonials: 0,
-        contacts: 0
-      },
-      recentActivity: []
-    }
     
     return NextResponse.json({
       success: true,

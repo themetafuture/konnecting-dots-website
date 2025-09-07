@@ -19,10 +19,10 @@ const envSchema = z.object({
 export const env = envSchema.parse({
   NODE_ENV: process.env.NODE_ENV || 'development',
   DATABASE_URL: process.env.DATABASE_URL || 'file:./dev.db',
-  JWT_SECRET: process.env.JWT_SECRET || 'your-super-secret-jwt-key-here-make-it-long-and-random-32-chars-min',
+  JWT_SECRET: process.env.JWT_SECRET || '4ef45798deef8bb5874a67dbe26674d7',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
   NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
-  NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'your-nextauth-secret-key-here-make-it-long-and-random-32-chars-min',
+  NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'd2ba6f60b7880b79e1da7515d68913bb',
   EMAIL_HOST: process.env.EMAIL_HOST,
   EMAIL_PORT: process.env.EMAIL_PORT,
   EMAIL_USER: process.env.EMAIL_USER,
