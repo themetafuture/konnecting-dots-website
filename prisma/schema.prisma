@@ -33,7 +33,6 @@ model User {
   testimonials        Testimonial[]
   blogPosts           BlogPost[]
   events              Event[]
-  approvedStudents    User[]        @relation("StudentApproval")
   studentApprovalsAsStudent StudentApproval[] @relation("StudentApprovalStudent")
   studentApprovalsAsReviewer StudentApproval[] @relation("StudentApprovalReviewer")
 

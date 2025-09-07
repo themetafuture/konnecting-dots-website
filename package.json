@@ -18,6 +18,7 @@
     "setup-database": "tsx backend/scripts/setup-database.ts"
   },
   "dependencies": {
+    "@esbuild/win32-x64": "^0.25.9",
     "@hookform/resolvers": "^3.9.1",
     "@prisma/client": "^5.22.0",
     "@prisma/debug": "^6.15.0",
