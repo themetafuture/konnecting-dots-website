@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -21,105 +21,146 @@ import {
   Download,
   Eye,
   Edit,
+  Loader2,
 } from "lucide-react"
 
+interface Student {
+  id: string
+  firstName: string
+  lastName: string
+  email: string
+  phone?: string
+  stats: {
+    totalCourses: number
+    completedCourses: number
+    activeCourses: number
+    averageProgress: number
+    totalSpent: number
+  }
+  enrollments: Array<{
+    course: {
+      title: string
+      category: string
+    }
+    status: string
+    progress: number
+  }>
+  createdAt: string
+  updatedAt: string
+}
+
+interface Course {
+  id: string
+  title: string
+  category: string
+  price: number
+  status: string
+  isPublished: boolean
+  _count: {
+    enrollments: number
+    events: number
+  }
+}
+
+interface DashboardData {
+  students: {
+    totalStudents: number
+    activeStudents: number
+    newStudentsThisMonth: number
+    totalEnrollments: number
+    completedEnrollments: number
+    averageProgress: number
+    completionRate: number
+  }
+  blog: {
+    totalPosts: number
+    publishedPosts: number
+    totalViews: number
+  }
+  upcomingEvents: Array<{
+    id: string
+    title: string
+    startDate: string
+    location?: string
+  }>
+  recentCourses: Course[]
+}
+
 export default function AdminDashboard() {
-  const [selectedStudent, setSelectedStudent] = useState(null)
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
+  const [loading, setLoading] = useState(true)
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
+  const [students, setStudents] = useState<Student[]>([])
+  const [courses, setCourses] = useState<Course[]>([])
 
-  // Mock data - in real app this would come from your database
-  const students = [
-    {
-      id: 1,
-      name: "John Smith",
-      email: "john@example.com",
-      phone: "+1 (555) 123-4567",
-      enrolledCourses: ["NLP Practitioner", "Corporate Training"],
-      progress: 75,
-      paymentStatus: "paid",
-      joinDate: "2024-01-15",
-      lastActive: "2024-01-20",
-    },
-    {
-      id: 2,
-      name: "Sarah Johnson",
-      email: "sarah@example.com",
-      phone: "+1 (555) 987-6543",
-      enrolledCourses: ["Train the Trainer"],
-      progress: 45,
-      paymentStatus: "pending",
-      joinDate: "2024-01-10",
-      lastActive: "2024-01-19",
-    },
-    {
-      id: 3,
-      name: "Michael Chen",
-      email: "michael@example.com",
-      phone: "+1 (555) 456-7890",
-      enrolledCourses: ["Master Practitioner", "DEI Training"],
-      progress: 90,
-      paymentStatus: "paid",
-      joinDate: "2023-12-20",
-      lastActive: "2024-01-21",
-    },
-  ]
+  useEffect(() => {
+    fetchDashboardData()
+    fetchStudents()
+    fetchCourses()
+  }, [])
 
-  const courses = [
-    {
-      id: 1,
-      name: "NLP Practitioner",
-      students: 45,
-      completionRate: 78,
-      revenue: 112425,
-      status: "active",
-    },
-    {
-      id: 2,
-      name: "Master Practitioner",
-      students: 32,
-      completionRate: 85,
-      revenue: 127840,
-      status: "active",
-    },
-    {
-      id: 3,
-      name: "Train the Trainer",
-      students: 28,
-      completionRate: 72,
-      revenue: 97860,
-      status: "active",
-    },
-  ]
+  const fetchDashboardData = async () => {
+    try {
+      const response = await fetch('/api/admin/dashboard')
+      const data = await response.json()
+      if (data.success) {
+        setDashboardData(data.data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch dashboard data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  const payments = [
-    {
-      id: 1,
-      studentName: "John Smith",
-      course: "NLP Practitioner",
-      amount: 2497,
-      status: "completed",
-      date: "2024-01-15",
-      method: "Credit Card",
-    },
-    {
-      id: 2,
-      studentName: "Sarah Johnson",
-      course: "Train the Trainer",
-      amount: 3497,
-      status: "pending",
-      date: "2024-01-10",
-      method: "Bank Transfer",
-    },
-    {
-      id: 3,
-      studentName: "Michael Chen",
-      course: "Master Practitioner",
-      amount: 3997,
-      status: "completed",
-      date: "2023-12-20",
-      method: "PayPal",
-    },
-  ]
+  const fetchStudents = async () => {
+    try {
+      const response = await fetch('/api/students')
+      const data = await response.json()
+      if (data.success) {
+        setStudents(data.data.students)
+      }
+    } catch (error) {
+      console.error('Failed to fetch students:', error)
+    }
+  }
+
+  const fetchCourses = async () => {
+    try {
+      const response = await fetch('/api/courses')
+      const data = await response.json()
+      if (data.success) {
+        setCourses(data.data.courses)
+      }
+    } catch (error) {
+      console.error('Failed to fetch courses:', error)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 pt-20 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p>Loading dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!dashboardData) {
+    return (
+      <div className="min-h-screen bg-gray-50 pt-20 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600">Failed to load dashboard data</p>
+          <Button onClick={fetchDashboardData} className="mt-4">
+            Retry
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pt-20">
@@ -137,7 +178,7 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Total Students</p>
-                  <p className="text-3xl font-bold text-gray-900">247</p>
+                  <p className="text-3xl font-bold text-gray-900">{dashboardData.students.totalStudents}</p>
                 </div>
                 <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                   <Users className="h-6 w-6 text-blue-600 flex-shrink-0" />
@@ -145,7 +186,7 @@ export default function AdminDashboard() {
               </div>
               <div className="mt-4 flex items-center">
                 <TrendingUp className="h-4 w-4 text-green-500 mr-1 flex-shrink-0" />
-                <span className="text-sm text-green-600">+12% from last month</span>
+                <span className="text-sm text-green-600">+{dashboardData.students.newStudentsThisMonth} this month</span>
               </div>
             </CardContent>
           </Card>
@@ -155,7 +196,7 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Active Courses</p>
-                  <p className="text-3xl font-bold text-gray-900">8</p>
+                  <p className="text-3xl font-bold text-gray-900">{courses.length}</p>
                 </div>
                 <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
                   <BookOpen className="h-6 w-6 text-green-600 flex-shrink-0" />
@@ -163,25 +204,7 @@ export default function AdminDashboard() {
               </div>
               <div className="mt-4 flex items-center">
                 <TrendingUp className="h-4 w-4 text-green-500 mr-1 flex-shrink-0" />
-                <span className="text-sm text-green-600">2 new this month</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Monthly Revenue</p>
-                  <p className="text-3xl font-bold text-gray-900">$45,280</p>
-                </div>
-                <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                  <DollarSign className="h-6 w-6 text-yellow-600 flex-shrink-0" />
-                </div>
-              </div>
-              <div className="mt-4 flex items-center">
-                <TrendingUp className="h-4 w-4 text-green-500 mr-1 flex-shrink-0" />
-                <span className="text-sm text-green-600">+8% from last month</span>
+                <span className="text-sm text-green-600">{dashboardData.students.totalEnrollments} enrollments</span>
               </div>
             </CardContent>
           </Card>
@@ -191,7 +214,7 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Completion Rate</p>
-                  <p className="text-3xl font-bold text-gray-900">78%</p>
+                  <p className="text-3xl font-bold text-gray-900">{dashboardData.students.completionRate}%</p>
                 </div>
                 <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
                   <CheckCircle className="h-6 w-6 text-purple-600 flex-shrink-0" />
@@ -199,7 +222,25 @@ export default function AdminDashboard() {
               </div>
               <div className="mt-4 flex items-center">
                 <TrendingUp className="h-4 w-4 text-green-500 mr-1 flex-shrink-0" />
-                <span className="text-sm text-green-600">+3% from last month</span>
+                <span className="text-sm text-green-600">{dashboardData.students.averageProgress}% avg progress</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Blog Views</p>
+                  <p className="text-3xl font-bold text-gray-900">{dashboardData.blog.totalViews.toLocaleString()}</p>
+                </div>
+                <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                  <BookOpen className="h-6 w-6 text-yellow-600 flex-shrink-0" />
+                </div>
+              </div>
+              <div className="mt-4 flex items-center">
+                <TrendingUp className="h-4 w-4 text-green-500 mr-1 flex-shrink-0" />
+                <span className="text-sm text-green-600">{dashboardData.blog.publishedPosts} published posts</span>
               </div>
             </CardContent>
           </Card>
@@ -258,15 +299,15 @@ export default function AdminDashboard() {
                       <TableRow key={student.id}>
                         <TableCell>
                           <div>
-                            <div className="font-medium">{student.name}</div>
+                            <div className="font-medium">{student.firstName} {student.lastName}</div>
                             <div className="text-sm text-gray-500">{student.email}</div>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="space-y-1">
-                            {student.enrolledCourses.map((course, index) => (
+                            {student.enrollments.map((enrollment, index) => (
                               <Badge key={index} variant="secondary" className="text-xs">
-                                {course}
+                                {enrollment.course.title}
                               </Badge>
                             ))}
                           </div>
@@ -276,24 +317,26 @@ export default function AdminDashboard() {
                             <div className="w-16 bg-gray-200 rounded-full h-2">
                               <div
                                 className="bg-blue-600 h-2 rounded-full"
-                                style={{ width: `${student.progress}%` }}
+                                style={{ width: `${student.stats.averageProgress}%` }}
                               ></div>
                             </div>
-                            <span className="text-sm">{student.progress}%</span>
+                            <span className="text-sm">{student.stats.averageProgress}%</span>
                           </div>
                         </TableCell>
                         <TableCell>
                           <Badge
-                            variant={student.paymentStatus === "paid" ? "default" : "destructive"}
-                            className={student.paymentStatus === "paid" ? "bg-green-100 text-green-800" : ""}
+                            variant={student.stats.totalSpent > 0 ? "default" : "destructive"}
+                            className={student.stats.totalSpent > 0 ? "bg-green-100 text-green-800" : ""}
                           >
-                            {student.paymentStatus}
+                            {student.stats.totalSpent > 0 ? "paid" : "pending"}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-sm text-gray-500">{student.lastActive}</TableCell>
+                        <TableCell className="text-sm text-gray-500">
+                          {new Date(student.updatedAt).toLocaleDateString()}
+                        </TableCell>
                         <TableCell>
                           <div className="flex items-center space-x-2">
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" onClick={() => setSelectedStudent(student)}>
                               <Eye className="h-4 w-4 flex-shrink-0" />
                             </Button>
                             <Button variant="ghost" size="sm">
@@ -324,21 +367,27 @@ export default function AdminDashboard() {
                     <Card key={course.id} className="border-0 shadow-lg">
                       <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-lg font-semibold text-balance">{course.name}</h3>
-                          <Badge variant="secondary">{course.status}</Badge>
+                          <h3 className="text-lg font-semibold text-balance">{course.title}</h3>
+                          <Badge variant={course.isPublished ? "default" : "secondary"}>
+                            {course.isPublished ? "Published" : "Draft"}
+                          </Badge>
                         </div>
                         <div className="space-y-3">
                           <div className="flex justify-between">
                             <span className="text-sm text-gray-600">Students:</span>
-                            <span className="font-medium">{course.students}</span>
+                            <span className="font-medium">{course._count.enrollments}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-sm text-gray-600">Completion Rate:</span>
-                            <span className="font-medium">{course.completionRate}%</span>
+                            <span className="text-sm text-gray-600">Category:</span>
+                            <span className="font-medium">{course.category}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-sm text-gray-600">Revenue:</span>
-                            <span className="font-medium">${course.revenue.toLocaleString()}</span>
+                            <span className="text-sm text-gray-600">Price:</span>
+                            <span className="font-medium">${course.price.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm text-gray-600">Events:</span>
+                            <span className="font-medium">{course._count.events}</span>
                           </div>
                         </div>
                         <div className="mt-4 flex space-x-2">
