@@ -17,6 +17,11 @@ export function validateEnvironment() {
   return true
 }
 
+// Check if we're in a build environment where env vars might not be available
+export function isBuildTime() {
+  return process.env.NODE_ENV === 'production' && !process.env.VERCEL
+}
+
 export function isProduction() {
   return process.env.NODE_ENV === 'production'
 }
