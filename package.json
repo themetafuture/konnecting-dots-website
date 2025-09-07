@@ -13,7 +13,8 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:seed": "tsx backend/scripts/seed.ts",
-    "create-admin-accounts": "tsx backend/scripts/create-admin-accounts.ts"
+    "create-admin-accounts": "tsx backend/scripts/create-admin-accounts.ts",
+    "create-test-student": "tsx backend/scripts/create-test-student.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

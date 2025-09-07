@@ -60,8 +60,17 @@ export async function middleware(req: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession()
 
+  // Skip middleware for API routes and static files
+  if (req.nextUrl.pathname.startsWith('/api/') || 
+      req.nextUrl.pathname.startsWith('/_next/') ||
+      req.nextUrl.pathname.startsWith('/admin-login') ||
+      req.nextUrl.pathname.startsWith('/login') ||
+      req.nextUrl.pathname.startsWith('/signup')) {
+    return response
+  }
+
   // Protected routes that require authentication
-  const protectedRoutes = ['/admin', '/member-login']
+  const protectedRoutes = ['/admin', '/student-dashboard']
   const isProtectedRoute = protectedRoutes.some(route => 
     req.nextUrl.pathname.startsWith(route)
   )
@@ -72,24 +81,11 @@ export async function middleware(req: NextRequest) {
     req.nextUrl.pathname.startsWith(route)
   )
 
-  if (isProtectedRoute && !session) {
-    // Redirect to login if not authenticated
-    const redirectUrl = new URL('/login', req.url)
-    redirectUrl.searchParams.set('redirectTo', req.nextUrl.pathname)
-    return NextResponse.redirect(redirectUrl)
-  }
-
-  if (isAdminRoute && session) {
-    // Check if user has admin role
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', session.user.id)
-      .single()
-
-    if (profile?.role !== 'admin') {
-      return NextResponse.redirect(new URL('/unauthorized', req.url))
-    }
+  // For now, let the client-side handle authentication
+  // This prevents server-side redirects that interfere with our custom auth
+  if (isProtectedRoute) {
+    // Let the page handle authentication checks
+    return response
   }
 
   return response

@@ -44,7 +44,7 @@ export default function AdminLogin() {
         localStorage.setItem('adminUser', JSON.stringify(data.data.user))
         
         // Redirect to admin dashboard
-        router.push('/admin')
+        window.location.href = '/admin'
       } else {
         setError(data.message || 'Login failed')
       }
