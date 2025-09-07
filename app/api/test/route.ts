@@ -1,4 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
+
+// Temporarily disabled during build to avoid Prisma issues
+export async function GET(request: NextRequest) {
+  return NextResponse.json({
+    success: false,
+    error: 'Health check temporarily unavailable during build'
+  }, { status: 503 })
+}
+
+/* 
+// Original implementation - will be restored after deployment
 import { prisma } from '@/backend/config/database'
 
 export async function GET(request: NextRequest) {
@@ -41,3 +52,4 @@ export async function GET(request: NextRequest) {
     await prisma.$disconnect()
   }
 }
+*/
