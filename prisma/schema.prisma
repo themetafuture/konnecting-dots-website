@@ -3,27 +3,27 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
-// Users table (matches your Supabase users table)
+// Users table
 model User {
-  id            String   @id @default(uuid()) @db.Uuid
+  id            String   @id @default(cuid())
   email         String   @unique
-  password      String?  // Optional since Supabase handles auth
+  password      String?
   firstName     String   @map("first_name")
   lastName      String   @map("last_name")
   phone         String?
-  role          String   @default("student") @db.Text
+  role          String   @default("student")
   avatar        String?
   isActive      Boolean  @default(true) @map("is_active")
   emailVerified Boolean  @default(false) @map("email_verified")
   isApproved    Boolean  @default(false) @map("is_approved")
-  approvedAt    DateTime? @map("approved_at") @db.Timestamptz(6)
-  approvedBy    String?  @map("approved_by") @db.Uuid
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  approvedAt    DateTime? @map("approved_at")
+  approvedBy    String?  @map("approved_by")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @default(now()) @map("updated_at")
 
   // Relations
   coursesAsInstructor Course[]      @relation("CourseInstructor")
@@ -43,14 +43,14 @@ model User {
 
 // Courses table
 model Course {
-  id           String  @id @default(uuid()) @db.Uuid
+  id           String  @id @default(cuid())
   title        String
   description  String?
   content      String?
   durationHours Int    @default(0) @map("duration_hours")
-  price        Decimal @default(0) @db.Decimal(10, 2)
-  status       String  @default("draft") @db.Text
-  instructorId String? @map("instructor_id") @db.Uuid
+  price        Float   @default(0)
+  status       String  @default("draft")
+  instructorId String? @map("instructor_id")
 
   // Relations
   instructor   User?           @relation("CourseInstructor", fields: [instructorId], references: [id])
@@ -65,14 +65,14 @@ model Course {
 
 // Course modules table
 model CourseModule {
-  id          String  @id @default(uuid()) @db.Uuid
-  courseId    String  @map("course_id") @db.Uuid
+  id          String  @id @default(cuid())
+  courseId    String  @map("course_id")
   title       String
   description String?
   content     String?
   orderIndex  Int     @default(0) @map("order_index")
   isRequired  Boolean @default(true) @map("is_required")
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdAt   DateTime @default(now()) @map("created_at")
 
   // Relations
   course   Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
@@ -83,13 +83,13 @@ model CourseModule {
 
 // Enrollments table
 model Enrollment {
-  id         String   @id @default(uuid()) @db.Uuid
-  studentId  String   @map("student_id") @db.Uuid
-  courseId   String   @map("course_id") @db.Uuid
-  status     String   @default("pending") @db.Text
-  enrolledAt DateTime @default(now()) @map("enrolled_at") @db.Timestamptz(6)
-  approvedAt DateTime? @map("approved_at") @db.Timestamptz(6)
-  completedAt DateTime? @map("completed_at") @db.Timestamptz(6)
+  id         String   @id @default(cuid())
+  studentId  String   @map("student_id")
+  courseId   String   @map("course_id")
+  status     String   @default("pending")
+  enrolledAt DateTime @default(now()) @map("enrolled_at")
+  approvedAt DateTime? @map("approved_at")
+  completedAt DateTime? @map("completed_at")
 
   // Relations
   student  User   @relation(fields: [studentId], references: [id])
@@ -102,12 +102,12 @@ model Enrollment {
 
 // Progress table
 model Progress {
-  id                 String   @id @default(uuid()) @db.Uuid
-  enrollmentId       String   @map("enrollment_id") @db.Uuid
-  moduleId           String   @map("module_id") @db.Uuid
-  status             String   @default("not_started") @db.Text
-  startedAt          DateTime? @map("started_at") @db.Timestamptz(6)
-  completedAt        DateTime? @map("completed_at") @db.Timestamptz(6)
+  id                 String   @id @default(cuid())
+  enrollmentId       String   @map("enrollment_id")
+  moduleId           String   @map("module_id")
+  status             String   @default("not_started")
+  startedAt          DateTime? @map("started_at")
+  completedAt        DateTime? @map("completed_at")
   progressPercentage Int      @default(0) @map("progress_percentage")
 
   // Relations
@@ -120,13 +120,13 @@ model Progress {
 
 // Admin actions table
 model AdminAction {
-  id         String   @id @default(uuid()) @db.Uuid
-  adminId    String   @map("admin_id") @db.Uuid
+  id         String   @id @default(cuid())
+  adminId    String   @map("admin_id")
   actionType String   @map("action_type")
   targetType String   @map("target_type")
-  targetId   String   @map("target_id") @db.Uuid
-  details    Json?
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  targetId   String   @map("target_id")
+  details    String?  // JSON as string for SQLite
+  createdAt  DateTime @default(now()) @map("created_at")
 
   // Relations
   admin User @relation(fields: [adminId], references: [id])
@@ -134,21 +134,21 @@ model AdminAction {
   @@map("admin_actions")
 }
 
-// Events table (matches your Supabase events table)
+// Events table
 model Event {
-  id          String    @id @default(uuid()) @db.Uuid
+  id          String    @id @default(cuid())
   title       String
   description String?
   content     String?
-  startDate   DateTime  @map("start_date") @db.Timestamptz(6)
-  endDate     DateTime? @map("end_date") @db.Timestamptz(6)
+  startDate   DateTime  @map("start_date")
+  endDate     DateTime? @map("end_date")
   location    String?
-  type        String    @default("workshop") @db.Text
-  status      String    @default("scheduled") @db.Text
-  courseId    String?   @map("course_id") @db.Uuid
-  instructorId String?  @map("instructor_id") @db.Uuid
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  type        String    @default("workshop")
+  status      String    @default("scheduled")
+  courseId    String?   @map("course_id")
+  instructorId String?  @map("instructor_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @default(now()) @map("updated_at")
 
   // Relations
   course     Course? @relation(fields: [courseId], references: [id])
@@ -157,22 +157,22 @@ model Event {
   @@map("events")
 }
 
-// Blog posts table (matches your Supabase blog_posts table)
+// Blog posts table
 model BlogPost {
-  id          String    @id @default(uuid()) @db.Uuid
+  id          String    @id @default(cuid())
   title       String
   content     String
   excerpt     String?
   slug        String    @unique
-  authorId    String    @map("author_id") @db.Uuid
+  authorId    String    @map("author_id")
   category    String
-  tags        String?   // JSON array
-  status      String    @default("draft") @db.Text
+  tags        String?   // JSON array as string
+  status      String    @default("draft")
   featured    Boolean   @default(false)
   views       Int       @default(0)
-  publishedAt DateTime? @map("published_at") @db.Timestamptz(6)
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  publishedAt DateTime? @map("published_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @default(now()) @map("updated_at")
 
   // Relations
   author User @relation(fields: [authorId], references: [id])
@@ -180,33 +180,33 @@ model BlogPost {
   @@map("blog_posts")
 }
 
-// Contact messages table (matches your Supabase contact_messages table)
+// Contact messages table
 model ContactMessage {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(cuid())
   name      String
   email     String
   phone     String?
   subject   String
   message   String
   service   String?
-  status    String   @default("new") @db.Text
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  status    String   @default("new")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
 
   @@map("contact_messages")
 }
 
-// Payments table (matches your Supabase payments table)
+// Payments table
 model Payment {
-  id            String   @id @default(uuid()) @db.Uuid
-  studentId     String   @map("student_id") @db.Uuid
-  courseId      String   @map("course_id") @db.Uuid
-  amount        Decimal  @db.Decimal(10, 2)
-  status        String   @default("pending") @db.Text
-  method        String   @db.Text
+  id            String   @id @default(cuid())
+  studentId     String   @map("student_id")
+  courseId      String   @map("course_id")
+  amount        Float
+  status        String   @default("pending")
+  method        String
   transactionId String?  @map("transaction_id")
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @default(now()) @map("updated_at")
 
   // Relations
   student User   @relation(fields: [studentId], references: [id])
@@ -215,16 +215,16 @@ model Payment {
   @@map("payments")
 }
 
-// Testimonials table (matches your Supabase testimonials table)
+// Testimonials table
 model Testimonial {
-  id        String   @id @default(uuid()) @db.Uuid
-  studentId String   @map("student_id") @db.Uuid
-  courseId  String   @map("course_id") @db.Uuid
+  id        String   @id @default(cuid())
+  studentId String   @map("student_id")
+  courseId  String   @map("course_id")
   content   String
   rating    Int?
-  status    String   @default("pending") @db.Text
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  status    String   @default("pending")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
 
   // Relations
   student User   @relation(fields: [studentId], references: [id])
@@ -235,15 +235,15 @@ model Testimonial {
 
 // Student approval requests table
 model StudentApproval {
-  id          String   @id @default(uuid()) @db.Uuid
-  studentId   String   @map("student_id") @db.Uuid
-  status      String   @default("pending") @db.Text // pending, approved, rejected
-  requestedAt DateTime @default(now()) @map("requested_at") @db.Timestamptz(6)
-  reviewedAt  DateTime? @map("reviewed_at") @db.Timestamptz(6)
-  reviewedBy  String?  @map("reviewed_by") @db.Uuid
+  id          String   @id @default(cuid())
+  studentId   String   @map("student_id")
+  status      String   @default("pending") // pending, approved, rejected
+  requestedAt DateTime @default(now()) @map("requested_at")
+  reviewedAt  DateTime? @map("reviewed_at")
+  reviewedBy  String?  @map("reviewed_by")
   notes       String?
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @map("updated_at")
 
   // Relations
   student   User  @relation("StudentApprovalStudent", fields: [studentId], references: [id])
