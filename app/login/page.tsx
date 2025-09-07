@@ -60,9 +60,20 @@ export default function LoginPage() {
       const result = await response.json()
 
       if (result.success) {
-        setIsLoggedIn(true)
-        // Store user data in localStorage for client-side access
+        // Store user data and token in localStorage
         localStorage.setItem('user', JSON.stringify(result.data.user))
+        localStorage.setItem('token', result.data.token)
+        
+        // Redirect based on user role
+        if (['super_admin', 'admin', 'manager'].includes(result.data.user.role)) {
+          // Redirect admin users to admin dashboard
+          window.location.href = '/admin'
+        } else if (result.data.user.role === 'student') {
+          // Redirect students to student dashboard
+          window.location.href = '/student-dashboard'
+        } else {
+          setIsLoggedIn(true)
+        }
       } else {
         setLoginError(result.message || 'Login failed. Please check your credentials.')
       }

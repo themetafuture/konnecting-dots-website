@@ -117,12 +117,34 @@ export default function AdminDashboard() {
     method: string
     date: string
   }>>([])
+  const [pendingStudents, setPendingStudents] = useState<Array<{
+    id: string
+    studentId: string
+    student: {
+      id: string
+      email: string
+      firstName: string
+      lastName: string
+      phone?: string
+      createdAt: string
+    }
+    status: string
+    requestedAt: string
+  }>>([])
 
   useEffect(() => {
+    // Check if user is authenticated
+    const token = localStorage.getItem('adminToken')
+    if (!token) {
+      window.location.href = '/admin-login'
+      return
+    }
+
     fetchDashboardData()
     fetchStudents()
     fetchCourses()
     fetchPayments()
+    fetchPendingStudents()
   }, [])
 
   const fetchDashboardData = async () => {
@@ -198,6 +220,57 @@ export default function AdminDashboard() {
       setPayments(mockPayments)
     } catch (error) {
       console.error('Failed to fetch payments:', error)
+    }
+  }
+
+  const fetchPendingStudents = async () => {
+    try {
+      const token = localStorage.getItem('adminToken')
+      if (!token) return
+
+      const response = await fetch('/api/admin/students/approve', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      const data = await response.json()
+      if (data.success) {
+        setPendingStudents(data.data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch pending students:', error)
+    }
+  }
+
+  const handleStudentApproval = async (studentId: string, action: 'approve' | 'reject') => {
+    try {
+      const token = localStorage.getItem('adminToken')
+      if (!token) return
+
+      const response = await fetch('/api/admin/students/approve', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          studentId,
+          action
+        })
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        // Refresh the pending students list
+        fetchPendingStudents()
+        // Show success message
+        alert(`Student ${action === 'approve' ? 'approved' : 'rejected'} successfully`)
+      } else {
+        alert(data.message || 'Failed to process approval')
+      }
+    } catch (error) {
+      console.error('Error processing student approval:', error)
+      alert('Failed to process approval')
     }
   }
 
@@ -629,50 +702,69 @@ export default function AdminDashboard() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Users className="h-5 w-5 text-blue-600" />
-                    Pending Student Registrations
+                    Pending Student Registrations ({pendingStudents.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Student</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Program</TableHead>
-                        <TableHead>Registration Date</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">John Smith</div>
-                            <div className="text-sm text-gray-500">+1 (555) 123-4567</div>
-                          </div>
-                        </TableCell>
-                        <TableCell>john.smith@email.com</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">NLP Practitioner</Badge>
-                        </TableCell>
-                        <TableCell>2024-01-20</TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              Approve
-                            </Button>
-                            <Button size="sm" variant="outline">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button size="sm" variant="outline" className="text-red-600">
-                              Reject
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
+                  {pendingStudents.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600">No pending student registrations</p>
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Student</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Phone</TableHead>
+                          <TableHead>Registration Date</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {pendingStudents.map((approval) => (
+                          <TableRow key={approval.id}>
+                            <TableCell>
+                              <div>
+                                <div className="font-medium">
+                                  {approval.student.firstName} {approval.student.lastName}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  ID: {approval.student.id.slice(0, 8)}...
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>{approval.student.email}</TableCell>
+                            <TableCell>{approval.student.phone || 'N/A'}</TableCell>
+                            <TableCell>
+                              {new Date(approval.student.createdAt).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <Button 
+                                  size="sm" 
+                                  className="bg-green-600 hover:bg-green-700"
+                                  onClick={() => handleStudentApproval(approval.studentId, 'approve')}
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                  Approve
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="text-red-600 hover:bg-red-50"
+                                  onClick={() => handleStudentApproval(approval.studentId, 'reject')}
+                                >
+                                  Reject
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
                 </CardContent>
               </Card>
 

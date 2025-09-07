@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { PrismaClient } from '@prisma/client'
+import bcrypt from 'bcryptjs'
+import { EmailService } from '@/backend/services/emailService'
+
+const prisma = new PrismaClient()
+const emailService = new EmailService()
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,69 +18,66 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    const supabase = createClient()
-    
-    // Sign up the user
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          first_name: firstName,
-          last_name: lastName,
-          role: role,
-        },
-      },
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email }
     })
 
-    if (authError) {
+    if (existingUser) {
       return NextResponse.json({
         success: false,
-        message: authError.message
+        message: 'User with this email already exists'
       }, { status: 400 })
     }
 
-    if (authData.user) {
-      // Create user profile in users table
-      const { error: userError } = await supabase
-        .from('users')
-        .insert({
-          id: authData.user.id,
-          email: authData.user.email!,
-          first_name: firstName,
-          last_name: lastName,
-          phone: phone,
-          role: role,
-        })
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 12)
 
-      if (userError) {
-        console.error('User creation error:', userError)
-        // Note: User is created in auth but user profile creation failed
-        // In production, you might want to handle this differently
+    // Create user in database (not approved yet)
+    const user = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        firstName,
+        lastName,
+        phone,
+        role,
+        isActive: false, // Not active until approved
+        emailVerified: false,
+        isApproved: false,
       }
+    })
 
-      // Also create profile for backward compatibility
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: authData.user.id,
-          email: authData.user.email!,
-          full_name: `${firstName} ${lastName}`,
-          role: role,
-          phone: phone,
-        })
-
-      if (profileError) {
-        console.error('Profile creation error:', profileError)
+    // Create student approval request
+    await prisma.studentApproval.create({
+      data: {
+        studentId: user.id,
+        status: 'pending',
       }
+    })
+
+    // Send notification to super admin
+    const superAdmin = await prisma.user.findFirst({
+      where: { role: 'super_admin' }
+    })
+    
+    if (superAdmin) {
+      await emailService.sendNewStudentNotification(
+        superAdmin.email,
+        `${firstName} ${lastName}`,
+        email
+      )
     }
+    
+    console.log(`New student registration pending approval: ${email}`)
 
     return NextResponse.json({
       success: true,
-      message: 'Registration successful. Please check your email to verify your account.',
+      message: 'Registration successful. Your account is pending approval from the administrator. You will receive an email once approved.',
       data: {
-        user: authData.user,
-        session: authData.session
+        userId: user.id,
+        email: user.email,
+        status: 'pending_approval'
       }
     })
 
@@ -85,6 +88,8 @@ export async function POST(request: NextRequest) {
       success: false,
       message: error.message || 'Registration failed'
     }, { status: 500 })
+  } finally {
+    await prisma.$disconnect()
   }
 }
 
