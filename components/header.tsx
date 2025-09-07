@@ -142,7 +142,7 @@ export default function Header() {
                 Student Login
               </Button>
             </Link>
-            <Link href="/admin">
+            <Link href="/admin-login">
               <Button variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-50 bg-transparent">
                 Admin Login
               </Button>
@@ -284,7 +284,7 @@ export default function Header() {
                       Student Login
                     </Button>
                   </Link>
-                  <Link href="/admin" onClick={() => setIsOpen(false)}>
+                  <Link href="/admin-login" onClick={() => setIsOpen(false)}>
                     <Button
                       variant="outline"
                       className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 bg-transparent"
